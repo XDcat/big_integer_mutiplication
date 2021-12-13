@@ -1,6 +1,5 @@
 from cmath import cos, sin, pi, exp
 from typing import List
-from numpy.fft import fft, ifft
 
 class Solution:
     def multiply(self, num1: str, num2: str) -> str:
@@ -12,6 +11,7 @@ class Solution:
             N = N << 1
         N = N << 1
 
+        # 为数字补长度
         num1 = "0" * (N - N1) + num1
         num2 = "0" * (N - N2) + num2
 
@@ -24,12 +24,6 @@ class Solution:
         dianzhi1 = self.FFT(xishu1, False)
         dianzhi2 = self.FFT(xishu2, False)
 
-        print("自己的FFT")
-        print(dianzhi1)
-        print(dianzhi2)
-        print("numpy 的FFT")
-        print(fft(xishu1).tolist())
-        print(fft(xishu2).tolist())
 
         # 求出结果的点值表达式
         dianzhi3 = []
@@ -38,78 +32,81 @@ class Solution:
 
         # 使用逆 FFT，求出结果系数表达式
         xishu3 = self.FFT(dianzhi3, True)
-        print("自己的 IFFT")
-        print(xishu3)
-        print("numpy 的 IFFT")
-        print(ifft(dianzhi3).tolist())
 
-        # res = "".join(xishu3[::-1])
-        res = xishu3
-        res = [round(i.real * len(dianzhi1)) for i in res[::-1]]
+        # 带入 x = 10, 求出结果
+        res = 0
+        for i in xishu3[::-1]:
+            res = 10 * (round(i.real) + res)
+        res = res / 10
+        res = int(res)
 
-        i = 0
-        for i in range(len(res)):
-            if res[i] != 0:
-                break
-        res = "".join([str(j) for j in res[i:]])
-        return res
+        return str(res)
 
     def FFT(self, a: List, flag: bool) -> List:
         """快速傅里叶变换(求值)，从系数映射到y，得到点值表示法
         :param a: 系数项 或者 y
         :param flag: 是否求逆
         """
+        y = self.FFTRecursion(a, flag)
+
+        # IFFT
+        n = len(a)
+        if flag:
+            y = [i / n for i in y]
+        return y
+
+    def FFTRecursion(self, a: List, flag: bool) -> List:
+        """递归实现FFT"""
         n = len(a)
         if n == 1:
             return a
 
-        # omg_n = complex(cos(2 * pi / n), sin(2 * pi / n))
-        omg_n = exp(2 * pi * 1j / n)
+        # 复数根
+        # omg_n = exp(-2 * pi * 1j / n)
+        omg_n = cos(2*pi / n) + 1j * sin(2*pi / n)
         if flag:
-            # 逆 FFT
+            # IFFT
             omg_n = 1 / omg_n
-        # 旋转因子，后续会使用 omg_n 进行更新
         omg = 1
 
-        # 系数项划分为偶数和奇数项
-        a0 = a[::2]  # 偶数项
-        a1 = a[1::2]  # 奇数项
+        # 分为奇偶两个部分
+        a0 = a[::2]  # even
+        a1 = a[1::2]  # odd
 
-        # 奇偶系数项对应的 y
-        y0 = self.FFT(a0, flag)
-        y1 = self.FFT(a1, flag)
+        # 计算两个部分的y值
+        y0 = self.FFTRecursion(a0, flag)
+        y1 = self.FFTRecursion(a1, flag)
 
-        res = [0] * n
+        # 计算最终结果的y
+        y = [0] * n
         for k in range(n // 2):
-            res[k] = y0[k] + omg * y1[k]
-            res[k + n // 2] = y0[k] - omg * y1[k]
+            y[k] = y0[k] + omg * y1[k]
+            y[k + n // 2] = y0[k] - omg * y1[k]
             omg = omg * omg_n
-
-        # 逆 FFT
-        if flag:
-            res = [i / n for i in res]
-        return res
-
+        return y
 
 if __name__ == '__main__':
     import random
 
-    # for i in range(5):
-    #     num1 = "".join([str(random.randint(0, 10)) for _ in range(random.randint(50, 101))])
-    #     num2 = "".join([str(random.randint(0, 10)) for _ in range(random.randint(50, 101))])
-    #     res = Solution().multiply(num1, num2)
-    #     print(f"num1 = {num1}")
-    #     print(f"num2 = {num2}")
-    #     print(f"num1 * num2 = {res}")
-    #     print("系统校验:", int(num1) * int(num2))
-    #     print()
+    for i in range(5):
+        num1 = "".join([str(random.randint(0, 10)) for _ in range(random.randint(50, 101))])
+        num2 = "".join([str(random.randint(0, 10)) for _ in range(random.randint(50, 101))])
+        res = Solution().multiply(num1, num2)
+        print(f"num1 = {num1}")
+        print(f"num2 = {num2}")
+        print(f"num1 * num2 = {res}")
+        system_mutiplication = int(num1) * int(num2)
+        print("系统校验:", system_mutiplication)
+        print("差值:", abs(system_mutiplication - int(res)))
+        print("误差率:", abs(system_mutiplication - int(res))/ system_mutiplication)
+        print()
 
-    num1 = "123"
-    num2 = "456"
-    res = Solution().multiply(num1, num2)
-    print(f"num1 = {num1}")
-    print(f"num2 = {num2}")
-    print(f"num1 * num2 = {res}")
-    print("系统校验:", int(num1) * int(num2))
-    print()
-
+    # num1 = "1232343045839205428"
+    # num2 = "4567890987890"
+    # res = Solution().multiply(num1, num2)
+    # print(f"num1 = {num1}")
+    # print(f"num2 = {num2}")
+    # print(f"num1 * num2 = {res}")
+    # print("系统校验:", int(num1) * int(num2))
+    # print()
+    #
